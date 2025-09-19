@@ -1,6 +1,6 @@
 import base64
 import json
-import os
+import os, os.path
 from typing import Dict, Any, Optional
 from openai import OpenAI, APIError, APIConnectionError, RateLimitError
 

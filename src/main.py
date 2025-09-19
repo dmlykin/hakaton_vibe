@@ -78,8 +78,15 @@ async def package_from_text(request: TextRequest):
             base_url=os.getenv("GEMMA_BASE_URL")
         )
         
+        # Читаем промт из файла
+        with open("src/promts/prompt_from_text.txt", "r", encoding="utf-8") as f:
+            text_prompt = f.read().strip()
+        
+        # Формируем полный промт, объединяя шаблон и ввод пользователя
+        full_prompt = f"{text_prompt}\n\nПользовательское описание: {request.description}"
+        
         # Получаем параметры упаковки от Gemma
-        response = client.execute_without_image(prompt=request.description)
+        response = client.execute_without_image(prompt=full_prompt)
         
         return JSONResponse(content=json.loads(response))
     except Exception as e:

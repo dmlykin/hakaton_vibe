@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расчет доставки CDEK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #005baa;
+            --primary-light: #e6f0fa;
+            --secondary-color: #ff6b00;
+            --text-color: #333;
+            --light-gray: #f5f5f5;
+            --border-color: #ddd;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .logo {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background: var(--light-gray);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .stepper::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: white;
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            transition: var(--transition);
+            font-weight: bold;
+        }
+
+        .step.active .step-number {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .step.completed .step-number {
+            background: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-container {
+            padding: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .section-optional {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: normal;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px 15px;
+        }
+
+        .form-group {
+            flex: 1 0 calc(33.333% - 20px);
+            margin: 0 10px 15px;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .form-group-full {
+            flex: 1 0 calc(100% - 20px);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.2);
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-with-icon i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .checkbox-group,
+        .radio-group {
+            margin-bottom: 15px;
+        }
+
+        .checkbox-label,
+        .radio-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"],
+        input[type="radio"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .add-place-btn {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            border: 1px dashed var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 15px;
+            transition: var(--transition);
+        }
+
+        .add-place-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .add-place-btn i {
+            margin-right: 8px;
+        }
+
+        .cargo-place {
+            background: var(--light-gray);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .remove-place {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: var(--error-color);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 18px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #00468c;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #e55a00;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-light);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .calculation-result {
+            background: var(--primary-light);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .calculation-result.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-label {
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .delivery-timeline {
+            margin-top: 20px;
+            position: relative;
+            height: 30px;
+            background: var(--light-gray);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            height: 100%;
+            background: var(--secondary-color);
+            border-radius: 15px;
+            width: 0;
+            transition: width 1s ease;
+        }
+
+        .timeline-days {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .required-field::after {
+            content: " *";
+            color: var(--error-color);
+        }
+
+        .error-message {
+            color: var(--error-color);
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .autocomplete-item:hover {
+            background: var(--light-gray);
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload-input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 2px dashed var(--border-color);
+            border-radius: 4px;
+            background: var(--light-gray);
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-upload-label:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .file-upload-icon {
+            font-size: 32px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .file-preview {
+            margin-top: 15px;
+            max-width: 100%;
+            max-height: 200px;
+            display: none;
+        }
+
+        .ai-analysis-result {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--primary-light);
+            border-radius: 4px;
+            display: none;
+        }
+
+        .ai-analysis-result.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .form-group {
+                flex: 1 0 calc(100% - 20px);
+            }
+            
+            .stepper {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .step {
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                width: 100%;
+            }
+            
+            .step-number {
+                margin: 0 15px 0 0;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .stepper::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-shipping-fast"></i>
+            </div>
+            <h1>Расчет и оформление доставки CDEK</h1>
+            <p>Рассчитайте стоимость и сроки доставки вашего груза</p>
+        </header>
+
+        <div class="stepper">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-title">Описание груза</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-title">Адреса доставки</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div class="step-title">Оформление</div>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="deliveryForm">
+                <!-- Блок "Описание груза" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Описание груза</h2>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group form-group-full">
+                            <label for="cargoDescription">Текстовое описание груза</label>
+                            <textarea id="cargoDescription" rows="4" placeholder="Опишите ваш груз: что это, примерные размеры и вес"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group form-group-full">
+                            <label>Или загрузите фотографию груза</label>
+                            <div class="file-upload">
+                                <input type="file" id="cargoPhoto" accept="image/*" class="file-upload-input">
+                                <label for="cargoPhoto" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                                    <span>Перетащите фото сюда или нажмите для выбора</span>
+                                </label>
+                            </div>
+                            <img id="photoPreview" class="file-preview" alt="Предпросмотр фото">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group form-group-full">
+                            <button type="button" class="btn btn-primary" id="analyzeCargoBtn">
+                                <i class="fas fa-robot"></i> Проанализировать груз
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="aiAnalysisResult" class="ai-analysis-result">
+                        <h4>Результаты анализа:</h4>
+                        <p>На основе вашего описания/фото система определила параметры груза.</p>
+                        <div class="result-row">
+                            <span class="result-label">Размеры (Д×Ш×В):</span>
+                            <span class="result-value" id="analyzedDimensions">30×20×15 см</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Вес:</span>
+                            <span class="result-value" id="analyzedWeight">2.5 кг</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок "Информация о грузе" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Информация о грузе</h2>
+                    </div>
+                    
+                    <div id="cargoPlaces">
+                        <div class="cargo-place">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="length" class="required-field">Длина, см</label>
+                                    <input type="number" id="length" min="1" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="width" class="required-field">Ширина, см</label>
+                                    <input type="number" id="width" min="1" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="height" class="required-field">Высота, см</label>
+                                    <input type="number" id="height" min="1" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="weight" class="required-field">Вес, кг</label>
+                                    <input type="number" id="weight" min="0.1" step="0.1" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="value">Оценочная стоимость, руб.</label>
+                                    <input type="number" id="value" min="0">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label style="display: block; height: 16px;"></label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="fragile">
+                                        <span>Хрупкий груз</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок "Откуда забрать" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Откуда забрать</h2>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="senderCity">Город отправителя</label>
+                            <div class="input-with-icon">
+                                <input type="text" id="senderCity" placeholder="Начните вводить город">
+                                <i class="fas fa-city"></i>
+                            </div>
+                            <div class="autocomplete-items" id="senderCityAutocomplete"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="senderPoint">Пункт выдачи</label>
+                            <select id="senderPoint">
+                                <option value="">Выберите пункт выдачи</option>
+                                <option value="point1">ПВЗ 1 - ул. Центральная, 15</option>
+                                <option value="point2">ПВЗ 2 - пр. Мира, 42</option>
+                                <option value="point3">ПВЗ 3 - ул. Ленина, 87</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group form-group-full">
+                            <label for="senderAddress">Точный адрес</label>
+                            <input type="text" id="senderAddress" placeholder="Улица, дом, квартира">
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="pickupFromAddress">
+                            <span>Забор груза от адреса</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Блок "Куда доставить" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Куда доставить</h2>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="receiverCity">Город получателя</label>
+                            <div class="input-with-icon">
+                                <input type="text" id="receiverCity" placeholder="Начните вводить город">
+                                <i class="fas fa-city"></i>
+                            </div>
+                            <div class="autocomplete-items" id="receiverCityAutocomplete"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="receiverPoint">Пункт выдачи</label>
+                            <select id="receiverPoint">
+                                <option value="">Выберите пункт выдачи</option>
+                                <option value="point1">ПВЗ 1 - ул. Центральная, 15</option>
+                                <option value="point2">ПВЗ 2 - пр. Мира, 42</option>
+                                <option value="point3">ПВЗ 3 - ул. Ленина, 87</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="deliveryType" value="pickup" checked>
+                            <span>Доставка до пункта выдачи</span>
+                        </label>
+                    </div>
+                    
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="deliveryType" value="courier">
+                            <span>Доставка курьером до адреса</span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-row" id="receiverAddressSection" style="display: none;">
+                        <div class="form-group form-group-full">
+                            <label for="receiverAddress">Адрес получателя</label>
+                            <input type="text" id="receiverAddress" placeholder="Улица, дом, квартира">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок "Дополнительные услуги" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Дополнительные услуги</h2>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="insurance">
+                            <span>Страхование груза</span>
+                        </label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="tryOn">
+                            <span>Примерка одежды</span>
+                        </label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="docReturn">
+                            <span>Возврат документов</span>
+                        </label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="packaging">
+                            <span>Упаковка</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Блок "Расчет стоимости" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Расчет стоимости</h2>
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary" id="calculateBtn">
+                        <i class="fas fa-calculator"></i> Рассчитать стоимость
+                    </button>
+                    
+                    <div class="calculation-result" id="calculationResult">
+                        <div class="result-row">
+                            <span class="result-label">Стоимость доставки:</span>
+                            <span class="result-value" id="deliveryCost">0 руб.</span>
+                        </div>
+                        
+                        <div class="result-row">
+                            <span class="result-label">Срок доставки:</span>
+                            <span class="result-value" id="deliveryTime">0-0 дней</span>
+                        </div>
+                        
+                        <div class="result-row">
+                            <span class="result-label">Детализация тарифа:</span>
+                            <span class="result-value" id="tariffDetails">Тариф "Экспресс-лайт"</span>
+                        </div>
+                        
+                        <div class="delivery-timeline">
+                            <div class="timeline-progress" id="timelineProgress"></div>
+                        </div>
+                        
+                        <div class="timeline-days">
+                            <span>1 день</span>
+                            <span>2 дня</span>
+                            <span>3 дня</span>
+                            <span>4 дня</span>
+                            <span>5 дней</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Блок "Оформление доставки" -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Оформление доставки</h2>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="senderName" class="required-field">ФИО отправителя</label>
+                            <input type="text" id="senderName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="senderPhone" class="required-field">Телефон отправителя</label>
+                            <input type="tel" id="senderPhone" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="senderEmail" class="required-field">Email отправителя</label>
+                            <input type="email" id="senderEmail" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="receiverName" class="required-field">ФИО получателя</label>
+                            <input type="text" id="receiverName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="receiverPhone" class="required-field">Телефон получателя</label>
+                            <input type="tel" id="receiverPhone" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="receiverEmail">Email получателя</label>
+                            <input type="email" id="receiverEmail">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group form-group-full">
+                            <label for="comments">Комментарий к заказу</label>
+                            <textarea id="comments" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="saveBtn">
+                        <i class="fas fa-save"></i> Сохранить черновик
+                    </button>
+                    
+                    <button type="submit" class="btn btn-secondary" id="submitBtn">
+                        <i class="fas fa-check"></i> Оформить доставку
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mock данные для автодополнения
+            const cities = [
+                "Москва", "Санкт-Петербург", "Новосибирск", "Екатеринбург", "Казань",
+                "Нижний Новгород", "Челябинск", "Самара", "Омск", "Ростов-на-Дону",
+                "Уфа", "Красноярск", "Воронеж", "Пермь", "Волгоград"
+            ];
+            
+            // ID городов для API (в реальном приложении получать с сервера)
+            const cityIds = {
+                "Москва": "01581370-81f3-4322-9a28-3418adfabd97",
+                "Санкт-Петербург": "a376e68d-893b-4c4b-8ab6-2c35a8c6a0a9",
+                "Новосибирск": "c7d193aa-2716-452a-ac09-ea37dc2b3328",
+                "Екатеринбург": "d5a8f4c3-2b7a-4e69-8c1d-9f3b2a1e0d4c",
+                "Казань": "e6b9c8d7-1a2b-3c4d-5e6f-7g8h9i0j1k2l"
+            };
+            
+            // Элементы формы
+            const deliveryForm = document.getElementById('deliveryForm');
+            const deliveryTypeRadios = document.querySelectorAll('input[name="deliveryType"]');
+            const receiverAddressSection = document.getElementById('receiverAddressSection');
+            const calculateBtn = document.getElementById('calculateBtn');
+            const calculationResult = document.getElementById('calculationResult');
+            const analyzeCargoBtn = document.getElementById('analyzeCargoBtn');
+            const aiAnalysisResult = document.getElementById('aiAnalysisResult');
+            const cargoPhoto = document.getElementById('cargoPhoto');
+            const photoPreview = document.getElementById('photoPreview');
+            const saveBtn = document.getElementById('saveBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const steps = document.querySelectorAll('.step');
+            
+            // Текущий шаг
+            let currentStep = 1;
+            
+            // Обработчики событий
+            initAutocomplete('senderCity', cities);
+            initAutocomplete('receiverCity', cities);
+            
+            // Показать/скрыть поле адреса получателя в зависимости от типа доставки
+            deliveryTypeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    receiverAddressSection.style.display = this.value === 'courier' ? 'block' : 'none';
+                });
+            });
+            
+            // Загрузка фотографии
+            cargoPhoto.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        photoPreview.src = e.target.result;
+                        photoPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Анализ груза
+            analyzeCargoBtn.addEventListener('click', analyzeCargo);
+            
+            // Расчет стоимости доставки
+            calculateBtn.addEventListener('click', calculateDelivery);
+            
+            // Сохранение формы
+            saveBtn.addEventListener('click', saveFormData);
+            
+            // Отправка формы
+            deliveryForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (validateForm()) {
+                    submitFormData();
+                }
+            });
+            
+            // Загрузка сохраненных данных
+            loadFormData();
+            
+            // Функция инициализации автодополнения
+            function initAutocomplete(inputId, items) {
+                const input = document.getElementById(inputId);
+                const autocomplete = document.getElementById(inputId + 'Autocomplete');
+                
+                input.addEventListener('input', function() {
+                    const value = this.value.toLowerCase();
+                    autocomplete.innerHTML = '';
+                    
+                    if (!value) {
+                        autocomplete.style.display = 'none';
+                        return;
+                    }
+                    
+                    const filteredItems = items.filter(item => 
+                        item.toLowerCase().includes(value)
+                    );
+                    
+                    if (filteredItems.length) {
+                        filteredItems.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.textContent = item;
+                            div.addEventListener('click', function() {
+                                input.value = item;
+                                autocomplete.style.display = 'none';
+                            });
+                            autocomplete.appendChild(div);
+                        });
+                        autocomplete.style.display = 'block';
+                    } else {
+                        autocomplete.style.display = 'none';
+                    }
+                });
+                
+                // Скрыть автодополнение при клике вне его
+                document.addEventListener('click', function(e) {
+                    if (e.target !== input) {
+                        autocomplete.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Функция анализа груза (AI)
+            function analyzeCargo() {
+                const description = document.getElementById('cargoDescription').value;
+                const hasPhoto = cargoPhoto.files.length > 0;
+                
+                if (!description && !hasPhoto) {
+                    alert('Пожалуйста, опишите груз или загрузите фотографию');
+                    return;
+                }
+                
+                // Показать индикатор загрузки
+                analyzeCargoBtn.innerHTML = '<div class="loader"></div> Анализ...';
+                analyzeCargoBtn.disabled = true;
+                
+                // Имитация запроса к AI API
+                setTimeout(() => {
+                    // В реальном приложении здесь будет fetch запрос к API
+                    const mockResponse = {
+                        dimensions: {
+                            length: Math.floor(Math.random() * 50) + 10,
+                            width: Math.floor(Math.random() * 40) + 10,
+                            height: Math.floor(Math.random() * 30) + 5
+                        },
+                        weight: (Math.random() * 10 + 0.5).toFixed(1)
+                    };
+                    
+                    // Заполняем поля на основе анализа
+                    document.getElementById('length').value = mockResponse.dimensions.length;
+                    document.getElementById('width').value = mockResponse.dimensions.width;
+                    document.getElementById('height').value = mockResponse.dimensions.height;
+                    document.getElementById('weight').value = mockResponse.weight;
+                    
+                    // Показываем результаты анализа
+                    document.getElementById('analyzedDimensions').textContent = 
+                        `${mockResponse.dimensions.length}×${mockResponse.dimensions.width}×${mockResponse.dimensions.height} см`;
+                    document.getElementById('analyzedWeight').textContent = `${mockResponse.weight} кг`;
+                    
+                    aiAnalysisResult.classList.add('show');
+                    
+                    // Восстанавливаем кнопку
+                    analyzeCargoBtn.innerHTML = '<i class="fas fa-robot"></i> Проанализировать груз';
+                    analyzeCargoBtn.disabled = false;
+                    
+                    // Переходим к следующему шагу
+                    goToStep(2);
+                }, 2000);
+            }
+            
+            // Функция расчета стоимости доставки через API
+            function calculateDelivery() {
+                const length = parseInt(document.getElementById('length').value) || 10;
+                const width = parseInt(document.getElementById('width').value) || 10;
+                const height = parseInt(document.getElementById('height').value) || 10;
+                const weight = parseFloat(document.getElementById('weight').value) || 1;
+                const declaredValue = parseInt(document.getElementById('value').value) || 0;
+                const isFragile = document.getElementById('fragile').checked;
+                const hasInsurance = document.getElementById('insurance').checked;
+                
+                const senderCity = document.getElementById('senderCity').value;
+                const receiverCity = document.getElementById('receiverCity').value;
+                
+                // Проверка заполнения городов
+                if (!senderCity || !receiverCity) {
+                    alert('Пожалуйста, укажите города отправителя и получателя для расчета стоимости.');
+                    return;
+                }
+                
+                // Показать индикатор загрузки
+                calculateBtn.innerHTML = '<div class="loader"></div> Расчет...';
+                calculateBtn.disabled = true;
+                
+                // Определяем режим доставки
+                const deliveryType = document.querySelector('input[name="deliveryType"]:checked').value;
+                const mode = deliveryType === 'courier' ? 'DOOR-DOOR' : 'OFFICE-OFFICE';
+                
+                // Формируем запрос к API
+                const request = {
+                    serviceId: "3e0900c7-

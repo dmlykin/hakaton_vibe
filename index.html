@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ИИ-помощник оформления заказа</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #video {
+            width: 100%;
+            margin-top: 10px;
+            display: none;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ИИ-помощник оформления заказа</h1>
+
+    <div class="input-section">
+        <h2>Способ ввода</h2>
+        <button id="photoBtn">📸 Сделать фото</button>
+        <video id="video" autoplay playsinline></video>
+        <button id="captureBtn" style="display:none;">Сделать снимок</button>
+        <canvas id="canvas" style="display:none;"></canvas>
+
+        <div>
+            <h3>Или введите описание вручную:</h3>
+            <textarea id="description" placeholder="Опишите товар, который хотите отправить..."></textarea>
+            <button id="analyzeBtn">Анализировать текст</button>
+        </div>
+    </div>
+
+    <div id="result">
+        <h2>Предзаполненная форма заказа</h2>
+
+        <div class="form-group">
+            <label>Основная упаковка</label>
+            <select id="packageType">
+                <option value="">Выберите упаковку...</option>
+                <optgroup label="Коробка">
+                    <option value="box-xs">Коробка XS</option>
+                    <option value="box-s">Коробка S</option>
+                    <option value="box-m">Коробка M</option>
+                    <option value="box-l">Коробка L</option>
+                </optgroup>
+                <optgroup label="Пакет">
+                    <option value="pouch-a4">Пакет A4</option>
+                    <option value="pouch-a3">Пакет A3</option>
+                    <option value="pouch-a2">Пакет A2</option>
+                </optgroup>
+                <optgroup label="Конверт">
+                    <option value="envelope-a4">Конверт A4</option>
+                </optgroup>
+                <option value="custom">Своя упаковка</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Дополнительная упаковка</label>
+            <div>
+                <label><input type="checkbox" value="inner-crating"> Внутренняя обрешётка</label><br>
+                <label><input type="checkbox" value="paper"> Упаковочная бумага</label><br>
+                <label><input type="checkbox" value="bubble-wrap"> Воздушно-пупырчатая плёнка</label><br>
+                <label><input type="checkbox" value="cardboard"> Прессованный картон</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Ценность посылки (₽)</label>
+            <input type="number" id="value" placeholder="Автоматически определена" />
+        </div>
+
+        <div class="form-group">
+            <label>Рассчитанная стоимость доставки (₽)</label>
+            <input type="number" id="deliveryCost" disabled />
+        </div>
+
+        <button id="calculateBtn">Рассчитать стоимость</button>
+    </div>
+</div>
+
+<script>
+    const photoBtn = document.getElementById('photoBtn');
+    const video = document.getElementById('video');
+    const captureBtn = document.getElementById('captureBtn');
+    const canvas = document.getElementById('canvas');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const description = document.getElementById('description');
+    const result = document.getElementById('result');
+    const packageType = document.getElementById('packageType');
+    const valueInput = document.getElementById('value');
+    const deliveryCost = document.getElementById('deliveryCost');
+    const calculateBtn = document.getElementById('calculateBtn');
+
+    // Захват фото с камеры
+    photoBtn.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            video.style.display = 'block';
+            captureBtn.style.display = 'inline-block';
+        } catch (err) {
+            alert('Не удалось получить доступ к камере: ' + err.message);
+        }
+    });
+
+    // Сделать снимок и "распознать" объект (заглушка)
+    captureBtn.addEventListener('click', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const photoData = canvas.toDataURL('image/jpeg');
+
+        // Эмуляция распознавания
+        setTimeout(() => {
+            simulateImageRecognition();
+        }, 1000);
+
+        // Остановить камеру
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.style.display = 'none';
+        captureBtn.style.display = 'none';
+    });
+
+    // Эмуляция распознавания изображения
+    function simulateImageRecognition() {
+        // Здесь может быть вызов модели (например, через API)
+        // Пока — заглушка: определяем тип товара и упаковку
+        const detectedItem = "наушники"; // например
+        const detectedValue = 5000;
+
+        packageType.value = "pouch-a4";
+        valueInput.value = detectedValue;
+
+        result.style.display = "block";
+    }
+
+    // Анализ текстового описания
+    analyzeBtn.addEventListener('click', () => {
+        const text = description.value.trim().toLowerCase();
+        if (!text) {
+            alert("Введите описание товара.");
+            return;
+        }
+
+        // Эмуляция NLP-анализа
+        setTimeout(() => {
+            simulateTextAnalysis(text);
+        }, 500);
+    });
+
+    function simulateTextAnalysis(text) {
+        let pkg = "";
+        let value = 0;
+
+        if (text.includes("книга") || text.includes("документ")) {
+            pkg = "envelope-a4";
+            value = 300;
+        } else if (text.includes("телефон") || text.includes("наушники")) {
+            pkg = "pouch-a4";
+            value = 5000;
+        } else if (text.includes("ноутбук")) {
+            pkg = "box-m";
+            value = 50000;
+        } else {
+            pkg = "box-s";
+            value = 2000;
+        }
+
+        packageType.value = pkg;
+        valueInput.value = value;
+
+        result.style.display = "block";
+    }
+
+    // Расчёт стоимости (заглушка API)
+    calculateBtn.addEventListener('click', () => {
+        const value = parseFloat(valueInput.value) || 0;
+        // Простая формула: база + 1% от ценности
+        const cost = 300 + (value * 0.01);
+        deliveryCost.value = Math.round(cost);
+    });
+</script>
+</body>
+</html>

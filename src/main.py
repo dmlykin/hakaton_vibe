@@ -54,8 +54,12 @@ async def package_from_image(file: UploadFile = File(...)):
             base_url=os.getenv("GEMMA_BASE_URL")
         )
         
+        # Читаем промт из файла
+        with open("src/promts/prompt_photo.txt", "r", encoding="utf-8") as f:
+            photo_prompt = f.read().strip()
+        
         # Получаем параметры упаковки от Gemma
-        response = client.execute_with_image(prompt="Определи параметры упаковки для данного товара.", image_path=temp_path)
+        response = client.execute_with_image(prompt=photo_prompt, image_path=temp_path)
         
         # Удаляем временный файл
         os.remove(temp_path)

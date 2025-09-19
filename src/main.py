@@ -52,10 +52,16 @@ async def package_from_image(file: UploadFile = File(...)):
         with open(temp_path, "wb") as f:
             f.write(contents)
         
+        # Читаем ключи из файлов
+        with open("src/keys/GEMMA_API_KEY.txt", "r", encoding="utf-8") as f:
+            gemma_api_key = f.read().strip()
+        with open("src/keys/GEMMA_BASE_URL.txt", "r", encoding="utf-8") as f:
+            gemma_base_url = f.read().strip()
+        
         # Инициализируем клиент Gemma
         client = GemmaClient(
-            api_key=os.getenv(GEMMA_API_KEY),
-            base_url=os.getenv(GEMMA_BASE_URL)
+            api_key=gemma_api_key,
+            base_url=gemma_base_url
         )
         
         # Читаем промт из файла
@@ -76,10 +82,16 @@ async def package_from_image(file: UploadFile = File(...)):
 @app.post("/api/package/from-text")
 async def package_from_text(request: TextRequest):
     try:
+        # Читаем ключи из файлов
+        with open("src/keys/GEMMA_API_KEY.txt", "r", encoding="utf-8") as f:
+            gemma_api_key = f.read().strip()
+        with open("src/keys/GEMMA_BASE_URL.txt", "r", encoding="utf-8") as f:
+            gemma_base_url = f.read().strip()
+        
         # Инициализируем клиент Gemma
         client = GemmaClient(
-            api_key=os.getenv(GEMMA_API_KEY),
-            base_url=os.getenv(GEMMA_BASE_URL)
+            api_key=gemma_api_key,
+            base_url=gemma_base_url
         )
         
         # Читаем промт из файла

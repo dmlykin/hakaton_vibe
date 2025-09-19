@@ -1,0 +1,600 @@
+ИИ-помощник оформления заказа
+Задача
+Создать прототип ИИ-помощника оформления заказа.
+
+A) User Story - создание заказа по фото:
+Клиент запускает помощника
+Нажимает кнопку Фото
+Клиент наводит камеру на предмет для отправки
+Происходит распознавание изображения
+Клиенту предлагается предзаполненная форма, аналогичная форме создания заказ Суперапп https://my.cdek.ru/lkfl/delivery
+B) User Story - создание заказа по описанию:
+Клиент вводит описание товара произвольным текстом
+ИИ анализирует введенный текст
+Клиенту предлагается предзаполненная форма на основе его ввода аналогично сценарию создания по фото
+
+Поля для автоматического заполнения: 
+Упаковка, одна из списка: Коробка (XS, S, M, L), Пакет (A4, A3, A2), Конверт (A4), Своя упаковка (если габариты отправления не соответствуют ни одной из упаковок)
+Дополнительная упаковка: Внутренняя обрешетка, Упаковочная бумага, Воздушно-пупырчатая пленка, Прессованный картон. Обратите внимание, что доступная доп.упаковка зависит от основной упаковки
+
+Бонусные требования (будет плюсом, если получится реализовать):
+Ценность посылки. Определить ценность отправления и предзаполнить поле.
+Несколько предметов. Если на фотографии распознано несколько предметов, сгруппировать их оптимальным способом в N упаковок, в каждую добавить соответствующее классу предмета доп.упаковку.
+Расчет и вывод стоимости отправки (использовав API https://my.cdek.ru/api/lkfl/v2/calculator/calculateTariff - см. “Входные данные”) 
+Ожидаемый результат / критерии успеха
+Веб-приложение, задеплоенное на любой хостинг, которое можно запустить на телефоне, навести камеру на предмет и получить предзаполненную форму заказа.
+
+Форма должна выглядеть аналогично форме заказа SuperApp: https://my.cdek.ru/lkfl/delivery
+
+Не обязательно заполнять поля откуда/куда и данные отправителя/получателя.
+
+Для распознавания объектов по фото рекомендуется использовать модель Gemma3 27b.
+
+Входные данные
+Проверить корректность заполнения формы можно отправив POST-запрос:
+
+const request = {
+   serviceId: "3e0900c7-18f1-4128-9d85-545143235849", // "Стандарт"
+   mode: "OFFICE-OFFICE", // Режим доставки
+   payerType: "sender",
+   currencyMark: "RUB",
+   senderCityId: "c7d193aa-2716-452a-ac09-ea37dc2b3328", // Новосибирск
+   receiverCityId: "01581370-81f3-4322-9a28-3418adfabd97", // Москва
+   packages: [{ width: 33, length: 25, height: 7, weight: 3 }], // размеры упаковки
+   additionalServices: [
+       {
+           alias: "cartonBoxM",
+           params: [{ "name": "count", "value": 1 }],
+       },
+       {
+           alias: "insurance",
+           params: [{ name: "declaredCost", value: 99999 }],
+       }
+   ],
+};
+const res = fetch("https://my.cdek.ru/api/lkfl/v2/calculator/calculateTariff", {
+   method: 'POST',
+   headers: {
+       'Accept': 'application/json',
+       'Content-Type': 'application/json'
+   },
+   body: JSON.stringify(request),
+}).then(res => res.json()).then(res => console.log(res.data));
+
+
+
+Все доступные доп.услуги (упаковка, доп. упаковка, страховка):
+[
+   {
+       "alias": "insurance",
+       "originalTitle": "Дополнительный сбор за объявленную стоимость",
+       "title": "Ценность посылки",
+       "description": "Дополнительный организация страхования отправлений",
+       "infoUrl": null,
+       "automatic": true,
+       "param": {
+           "alias": "declaredCost",
+           "type": "MONEY",
+           "name": "Объявленная стоимость",
+           "minValue": 3000,
+           "defaultValue": null
+       },
+       "paymentDetail": {
+           "totalCost": {
+               "amount": 30,
+               "currency": "RUB"
+           }
+       }
+   },
+   {
+       "alias": "cartonBoxM",
+       "originalTitle": "Коробка M (5кг 33х25х15см)",
+       "title": "Короб M",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": {
+           "totalCost": {
+               "amount": 130,
+               "currency": "RUB"
+           }
+       }
+   },
+   {
+       "alias": "30KgBoxInnerCrate",
+       "originalTitle": "Внутренняя обрешетка «Коробка Вес до 30кг»",
+       "title": "Внутренняя обрешётка",
+       "description": "Каркас, укрепляющий коробку",
+       "infoUrl": "https://mobileapp-cdn.cdek.ru/stories/index.html?story=superapp_shipping_innerbox",
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "internalBoxM",
+       "originalTitle": "Внутренняя обрешетка для коробки «M»",
+       "title": "Внутренняя обрешётка",
+       "description": "Каркас, укрепляющий коробку",
+       "infoUrl": "https://mobileapp-cdn.cdek.ru/stories/index.html?story=superapp_shipping_innerbox",
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBox30",
+       "originalTitle": "Коробка Вес до 30кг (69х39х42см)",
+       "title": "Коробка XXL",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "internalBoxL",
+       "originalTitle": "Внутренняя обрешетка для коробки «L»",
+       "title": "Внутренняя обрешётка",
+       "description": "Каркас, укрепляющий коробку",
+       "infoUrl": "https://mobileapp-cdn.cdek.ru/stories/index.html?story=superapp_shipping_innerbox",
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "boxXl18kg60x35x30cm",
+       "originalTitle": "Коробка XL (18кг 60х35х30см)",
+       "title": "Короб XL",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "greenEnvelopeCdek",
+       "originalTitle": "Конверт (картон, А4)",
+       "title": "Конверт зеленый CDEK",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "boxL12Kilos31x25x38Cm",
+       "originalTitle": "Коробка L (12кг 31х25х38см)",
+       "title": "Короб L",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBox20",
+       "originalTitle": "Коробка Вес до 20кг (47х40х43см)",
+       "title": "Короб ВЕС 20 (20кг 47х40х43см)",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "packageA2LightExpress",
+       "originalTitle": "Пакет курьерский «Лайт» А2 (белый)",
+       "title": "Пакет А2 ЛАЙТ курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "packageA3LightExpress",
+       "originalTitle": "Пакет курьерский «Лайт» А3 (белый)",
+       "title": "Пакет А3 ЛАЙТ курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "packageA4LightExpress",
+       "originalTitle": "Пакет курьерский «Лайт» А4 (белый)",
+       "title": "Пакет А4 ЛАЙТ курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "packageA5LightExpress",
+       "originalTitle": "Пакет курьерский «Лайт» А5 (белый)",
+       "title": "Пакет А5 ЛАЙТ курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "dangerCargo",
+       "originalTitle": "Опасный груз",
+       "title": "Опасный грузчик",
+       "description": "Доставка опасных грузов",
+       "infoUrl": null,
+       "automatic": false,
+       "param": null,
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonFiller",
+       "originalTitle": "Прессованный картон «Филлер»",
+       "title": "Прессованный картон",
+       "description": "Можно заполнить пустоты в коробке, обернуть и разделить предметы внутри",
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "courierPackageA2",
+       "originalTitle": "Пакет курьерский СДЭК А2",
+       "title": "Пакет А2 курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "smsNotification",
+       "originalTitle": "Смс-уведомление",
+       "title": "SMS-уведомления",
+       "description": "Сообщим отправителю и получателю о важных этапах доставки в SMS",
+       "infoUrl": null,
+       "automatic": false,
+       "param": null,
+       "paymentDetail": null
+   },
+   {
+       "alias": "listOfDocumentContents",
+       "originalTitle": "Опись вложения документов",
+       "title": "Опись документов",
+       "description": "Для отправлений в суд, налоговую и офис",
+       "infoUrl": null,
+       "automatic": false,
+       "param": null,
+       "paymentDetail": null
+   },
+   {
+       "alias": "warehousing",
+       "originalTitle": "Хранение на складе",
+       "title": "Хранение на складе",
+       "description": "Хранение на складе",
+       "infoUrl": null,
+       "automatic": false,
+       "param": null,
+       "paymentDetail": null
+   },
+   {
+       "alias": "bubbleWrap",
+       "originalTitle": "Воздушно-пузырчатая пленка",
+       "title": "Воздушно-пузырчатая пленка",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "meters",
+           "type": "STRING",
+           "name": "метры",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "boxS(2Kilos23x19x10Cm)",
+       "originalTitle": "Коробка S (2кг 23х19х10см)",
+       "title": "Короб S",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBox10",
+       "originalTitle": "Коробка Вес до 10кг (40х35х28см)",
+       "title": "Короб L",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "courierPackageА4",
+       "originalTitle": "Пакет курьерский СДЭК А4",
+       "title": "Пакет А4 курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "courierPackageА3",
+       "originalTitle": "Пакет курьерский СДЭК А3",
+       "title": "Пакет А3 курьерский",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBoxXS",
+       "originalTitle": "Коробка XS (0,5кг 17х12х9см)",
+       "title": "Короб XS",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBox3",
+       "originalTitle": "Коробка Вес до 3кг (24х24х21см)",
+       "title": "Короб S",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBox2",
+       "originalTitle": "Коробка Вес до 2кг (34х24х10см)",
+       "title": "Короб XS",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "wastePaper",
+       "originalTitle": "Упаковочная бумага (крафт)",
+       "title": "Упаковочная бумага",
+       "description": "Можно заполнить пустоты в коробке",
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "meters",
+           "type": "STRING",
+           "name": "метры",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "cartonBox5",
+       "originalTitle": "Коробка Вес до 5кг (40х24х21см)",
+       "title": "Короб M",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "шт.",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "xlBoxInnerCrate",
+       "originalTitle": "Внутренняя обрешетка «Коробка XL»",
+       "title": "Внутренняя обрешётка",
+       "description": "Каркас, укрепляющий коробку",
+       "infoUrl": "https://mobileapp-cdn.cdek.ru/stories/index.html?story=superapp_shipping_innerbox",
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "internalBoxS",
+       "originalTitle": "Внутренняя обрешетка для коробки «S»",
+       "title": "Внутренняя обрешётка",
+       "description": "Каркас, укрепляющий коробку",
+       "infoUrl": "https://mobileapp-cdn.cdek.ru/stories/index.html?story=superapp_shipping_innerbox",
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "xxlBox35Kg804040Cm",
+       "originalTitle": "Коробка XXL (35кг 80х40х40см)",
+       "title": "Коробка XLL до 30 кг",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   },
+   {
+       "alias": "envelopeA4",
+       "originalTitle": "Конверт укреплённый (гофрокартон, А4)",
+       "title": "Конверт А4 из гофрокартона",
+       "description": null,
+       "infoUrl": null,
+       "automatic": false,
+       "param": {
+           "alias": "count",
+           "type": "INTEGER",
+           "name": "Количество",
+           "minValue": null,
+           "defaultValue": "1"
+       },
+       "paymentDetail": null
+   }
+]
+
+

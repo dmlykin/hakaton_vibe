@@ -15,7 +15,8 @@ class GemmaClient:
         self,
         api_key: str,
         base_url: str,
-        system_prompt_path: str = "src/system_prompt.txt"
+        system_prompt_path: str = "src/system_prompt.txt",
+        cloud_folder = "" 
     ):
         """
         Инициализация клиента.
@@ -29,6 +30,7 @@ class GemmaClient:
         self.base_url = base_url.rstrip("/")
         self.system_prompt = self._load_system_prompt(system_prompt_path)
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        self.YANDEX_CLOUD_FOLDER = cloud_folder
 
     def _load_system_prompt(self, path: str) -> str:
         """
@@ -125,6 +127,7 @@ class GemmaClient:
 
         # Формируем payload
         payload = {
+            "model": "gpt://{self.YANDEX_CLOUD_FOLDER}/gemma-3-27b-it/latest",
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,

@@ -1009,7 +1009,7 @@
             }
             
             // Функция анализа груза (AI)
-            function analyzeCargo() {
+            async function analyzeCargo() {
                 const description = document.getElementById('cargoDescription').value;
                 const hasPhoto = cargoPhoto.files.length > 0;
                 
@@ -1022,42 +1022,72 @@
                 analyzeCargoBtn.innerHTML = '<div class="loader"></div> Анализ...';
                 analyzeCargoBtn.disabled = true;
                 
-                // Имитация запроса к AI API
-                setTimeout(() => {
-                    // В реальном приложении здесь будет fetch запрос к API
-                    const mockResponse = {
-                        dimensions: {
-                            length: Math.floor(Math.random() * 50) + 10,
-                            width: Math.floor(Math.random() * 40) + 10,
-                            height: Math.floor(Math.random() * 30) + 5
-                        },
-                        weight: (Math.random() * 10 + 0.5).toFixed(1)
-                    };
+                try {
+                    let response;
+                    if (hasPhoto) {
+                        const formData = new FormData();
+                        formData.append('file', cargoPhoto.files[0]);
+                        
+                        response = await fetch('/api/package/from-image', {
+                            method: 'POST',
+                            body: formData
+                        });
+                    } else {
+                        response = await fetch('/api/package/from-text', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ description: description })
+                        });
+                    }
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Ошибка при анализе груза');
+                    }
+                    
+                    const data = await response.json();
                     
                     // Заполняем поля на основе анализа
-                    document.getElementById('length').value = mockResponse.dimensions.length;
-                    document.getElementById('width').value = mockResponse.dimensions.width;
-                    document.getElementById('height').value = mockResponse.dimensions.height;
-                    document.getElementById('weight').value = mockResponse.weight;
+                    if (data.dimensions) {
+                        document.getElementById('length').value = data.dimensions.length_cm;
+                        document.getElementById('width').value = data.dimensions.width_cm;
+                        document.getElementById('height').value = data.dimensions.height_cm;
+                    }
+                    if (data.weight_kg) {
+                        document.getElementById('weight').value = data.weight_kg;
+                    }
+                    if (data.value_rub) {
+                        document.getElementById('value').value = data.value_rub;
+                    }
                     
                     // Показываем результаты анализа
-                    document.getElementById('analyzedDimensions').textContent = 
-                        `${mockResponse.dimensions.length}×${mockResponse.dimensions.width}×${mockResponse.dimensions.height} см`;
-                    document.getElementById('analyzedWeight').textContent = `${mockResponse.weight} кг`;
+                    if (data.dimensions) {
+                        document.getElementById('analyzedDimensions').textContent = 
+                            `${data.dimensions.length_cm}×${data.dimensions.width_cm}×${data.dimensions.height_cm} см`;
+                    }
+                    if (data.weight_kg) {
+                        document.getElementById('analyzedWeight').textContent = `${data.weight_kg} кг`;
+                    }
                     
                     aiAnalysisResult.classList.add('show');
                     
+                    // Переходим к следующему шагу
+                    goToStep(2);
+                    
+                } catch (error) {
+                    alert('Ошибка при анализе груза: ' + error.message);
+                    console.error('Ошибка анализа груза:', error);
+                } finally {
                     // Восстанавливаем кнопку
                     analyzeCargoBtn.innerHTML = '<i class="fas fa-robot"></i> Проанализировать груз';
                     analyzeCargoBtn.disabled = false;
-                    
-                    // Переходим к следующему шагу
-                    goToStep(2);
-                }, 2000);
+                }
             }
             
             // Функция расчета стоимости доставки через API
-            function calculateDelivery() {
+            async function calculateDelivery() {
                 const length = parseInt(document.getElementById('length').value) || 10;
                 const width = parseInt(document.getElementById('width').value) || 10;
                 const height = parseInt(document.getElementById('height').value) || 10;
@@ -1085,4 +1115,81 @@
                 
                 // Формируем запрос к API
                 const request = {
-                    serviceId: "3e0900c7-
+                    serviceId: "3e0900c7-18f1-4128-9d85-545143235849",
+                    mode: mode,
+                    payerType: "sender",
+                    currencyMark: "RUB",
+                    senderCityId: "c7d193aa-2716-452a-ac09-ea37dc2b3328",
+                    receiverCityId: "01581370-81f3-4322-9a28-3418adfabd97",
+                    packages: [{
+                        width: width,
+                        length: length,
+                        height: height,
+                        weight: weight
+                    }],
+                    additionalServices: []
+                };
+                
+                // Добавляем страховку, если выбрана
+                if (hasInsurance && declaredValue > 0) {
+                    request.additionalServices.push({
+                        alias: "insurance",
+                        params: [{ name: "declaredCost", value: declaredValue }]
+                    });
+                }
+                
+                try {
+                    const response = await fetch('/api/calculate-tariff', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(request)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Ошибка при расчете тарифа');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Обновляем результаты расчета
+                    document.getElementById('deliveryCost').textContent = `${data.data.totalSum} руб.`;
+                    document.getElementById('deliveryTime').textContent = `${data.data.deliveryPeriodMin}-${data.data.deliveryPeriodMax} дней`;
+                    document.getElementById('tariffDetails').textContent = `Тариф ID: ${data.data.tariffId}`;
+                    
+                    // Обновляем прогресс-бар доставки
+                    const timelineProgress = document.getElementById('timelineProgress');
+                    const days = data.data.deliveryPeriodMax;
+                    timelineProgress.style.width = `${Math.min(days * 20, 100)}%`;
+                    
+                    // Показываем результат
+                    calculationResult.classList.add('show');
+                    
+                } catch (error) {
+                    alert('Ошибка при расчете стоимости доставки: ' + error.message);
+                    console.error('Ошибка расчета тарифа:', error);
+                } finally {
+                    // Восстанавливаем кнопку
+                    calculateBtn.innerHTML = '<i class="fas fa-calculator"></i> Рассчитать стоимость';
+                    calculateBtn.disabled = false;
+                }
+            }
+            
+            // Функция перехода к следующему шагу
+            function goToStep(step) {
+                steps.forEach((s, i) => {
+                    s.classList.remove('active', 'completed');
+                    if (i + 1 < step) {
+                        s.classList.add('completed');
+                    } else if (i + 1 === step) {
+                        s.classList.add('active');
+                    }
+                });
+                currentStep = step;
+            }
+        });
+    </script>
+</body>
+</html>

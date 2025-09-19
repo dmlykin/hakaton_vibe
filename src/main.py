@@ -111,19 +111,53 @@ async def package_from_text(request: TextRequest):
 # Эндпоинт для расчёта тарифа CDEK (заглушка — требует реальной интеграции)
 @app.post("/api/calculate-tariff")
 async def calculate_tariff(request: TariffRequest):
-    # Здесь должен быть вызов внешнего API CDEK
-    # Пока возвращаем заглушку
-    return {
-        "data": {
-            "totalSum": 990.50,
-            "deliveryPeriodMin": 2,
-            "deliveryPeriodMax": 4,
-            "tariffId": "3e0900c7-18f1-4128-9d85-545143235849",
-            "deliveryDateMin": "2025-09-21T00:00:00+07:00",
-            "deliveryDateMax": "2025-09-23T00:00:00+07:00"
-        }
+    import httpx
+    # Формируем запрос к API CDEK
+    cdek_request = {
+        "serviceId": request.serviceId,
+        "mode": request.mode,
+        "payerType": request.payerType,
+        "currencyMark": request.currencyMark,
+        "senderCityId": request.senderCityId,
+        "receiverCityId": request.receiverCityId,
+        "packages": [
+            {
+                "width": pkg.width,
+                "length": pkg.length,
+                "height": pkg.height,
+                "weight": pkg.weight
+            } for pkg in request.packages
+        ],
+        "additionalServices": [
+            {
+                "alias": service.alias,
+                "params": service.params
+            } for service in request.additionalServices
+        ]
     }
+    
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "https://my.cdek.ru/api/lkfl/v2/calculator/calculateTariff",
+                json=cdek_request,
+                headers=headers,
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=f"Ошибка API CDEK: {e.response.text}")
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Ошибка запроса к API CDEK: {str(e)}")
+
+from fastapi.responses import FileResponse
 
 @app.get("/")
 async def root():
-    return {"message": "CDEK Packaging & Tariff API is running. Use /api/package/from-image, /api/package/from-text, or /api/calculate-tariff"}
+    return FileResponse("index.html")

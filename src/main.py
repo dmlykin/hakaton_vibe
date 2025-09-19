@@ -14,6 +14,10 @@ from fastapi import UploadFile, File
 
 app = FastAPI(title="CDEK Packaging & Tariff API", description="API для определения упаковки и расчёта тарифов СДЭК")
 
+GEMMA_API_KEY = "b1gev2uuu4qjmasjjdf7"
+GEMMA_BASE_URL = "AQVN0wnlBHnWEEU5fSga_q5VG1kLsT87oW4h9IdX"
+
+
 # Модели данных
 class AdditionalService(BaseModel):
     alias: str
@@ -50,8 +54,8 @@ async def package_from_image(file: UploadFile = File(...)):
         
         # Инициализируем клиент Gemma
         client = GemmaClient(
-            api_key=os.getenv("GEMMA_API_KEY"),
-            base_url=os.getenv("GEMMA_BASE_URL")
+            api_key=os.getenv(GEMMA_API_KEY),
+            base_url=os.getenv(GEMMA_BASE_URL)
         )
         
         # Читаем промт из файла
@@ -74,8 +78,8 @@ async def package_from_text(request: TextRequest):
     try:
         # Инициализируем клиент Gemma
         client = GemmaClient(
-            api_key=os.getenv("GEMMA_API_KEY"),
-            base_url=os.getenv("GEMMA_BASE_URL")
+            api_key=os.getenv(GEMMA_API_KEY),
+            base_url=os.getenv(GEMMA_BASE_URL)
         )
         
         # Читаем промт из файла
